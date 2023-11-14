@@ -1,11 +1,14 @@
 // const { groups, groupId, increase, decrease } = require("../repository/groups");
 
 const { groups } = require("../repository/groups");
+const { users } = require("../repository/users");
+
 const groupsData = groups;
 
 const express = require('express');
 const router = express.Router();
 
+let groupId = 3
 
 // 전체 그룹 조회
 router.get('/', (req, res)=> {
@@ -36,7 +39,7 @@ router.post('/', (req, res)=> {
     }
 
     let temp = {
-        groupId: parseInt(Math.random() * 100000),
+        groupId: groupId++,
         groupName: groupName,
         groupDescription: groupDescription,
         members: members ? members : [],
@@ -51,12 +54,12 @@ router.post('/', (req, res)=> {
 
 
 // 특정 그룹 조회
-router.get('/:id', (req, res)=> {
+router.get('/:groupId', (req, res)=> {
     
-    const id = Number(req.params.id)
+    const groupId = Number(req.params.groupId)
 
     let temp = groups.filter((el, idx) => {
-        return el.groupId === id
+        return el.groupId === groupId
     })[0]
 
     return temp.length ? res.status(200).send(temp) : res.status(404).send(temp)
@@ -64,8 +67,8 @@ router.get('/:id', (req, res)=> {
 
 
 // 그룹 정보 수정
-router.patch('/:id', (req, res)=> {
-    const id = Number(req.params.id)
+router.patch('/:groupId', (req, res)=> {
+    const groupId = Number(req.params.groupId)
     const data = req.body;
 
     // 입력 값 유효성 검사.
@@ -75,7 +78,7 @@ router.patch('/:id', (req, res)=> {
 
     // 기존 데이터 가져오기
     let temp = groupsData.filter((el, idx) => {
-        return el.groupId === id
+        return el.groupId === groupId
     });
     
     // 데이터가 없을 경우.
@@ -91,12 +94,12 @@ router.patch('/:id', (req, res)=> {
 
 
 // 그룹 삭제
-router.delete('/:id', (req, res)=> {
-    const id = Number(req.params.id)
+router.delete('/:groupId', (req, res)=> {
+    const groupId = Number(req.params.groupId)
 
     // 데이터 찾기
     const idx = groupsData.findIndex((el)=> {
-        return el.groupId === id
+        return el.groupId === groupId
     })
 
     // 데이터 삭제
@@ -108,5 +111,118 @@ router.delete('/:id', (req, res)=> {
     }
 
 });
+
+
+
+
+
+// 그룹 멤버 조회
+router.get('/:groupId/members', (req, res)=> {
+    const params = req.params;
+    const search = req.query.search;
+
+    // 그룹 멤버 가져오기
+    let members = groups.filter((el) => {
+        return el.groupId === Number(params.groupId);
+    })[0].members
+    
+    if (!search) {
+        return res.send({members: members})
+
+    }else {
+        let searchMember = members.filter((el) => {
+            return el.name.includes(search);
+        })
+        
+        return res.send({members: searchMember})
+    }
+});
+
+
+//그룹 멤버 초대
+router.post('/:groupId/members', (req, res)=> {
+    const params = req.params;
+    
+    // 그룹 가져오기
+    let group = groups.filter((el) => {
+        return el.groupId === Number(params.groupId);
+    })
+
+    // 그룹 멤버 가져오기
+    let members = group[0].members
+    
+    // 초대한 멤버 중복 제거
+    let inviteMember = new Set(req.body.inviteMember);
+    inviteMember = [...inviteMember]
+
+    // 유저 테이블에 존재하는 사람인지 확인하기
+    // 존재하지 않으면 잘못된 초대라고 응답.
+    let inviteTemp = [...inviteMember];
+
+    for(let i = 0; i < users.length; i++) {
+        if(inviteTemp.includes(users[i].userEmail)) {
+            let idx = inviteTemp.indexOf(users[i].userEmail)
+            inviteTemp.splice(idx, 1)
+        }
+    }
+
+    if(inviteTemp.length !== 0) {
+        return res.status(400).send("존재하지 않는 사용자가 있습니다 \n " + inviteTemp)
+    }
+    // 반복문 돌면서 이미 가입되어있는 사람 찾기
+    let duplication = [];
+
+    for(let i = 0; i < members.length; i++) {
+        let check = inviteMember.includes(members[i].userEmail)
+
+        if (check) {
+            duplication.push(members[i].userEmail)
+        }
+
+    }
+
+    // 이미 가입된 회원이 없으면 초대 성공
+    if(duplication.length === 0) {
+        // 이메일에 해당하는 유저 정보 가져오기
+        for(let invite of inviteMember) {
+            for (let i = 0; i < users.length; i++) {
+                // groups.member에 추가
+                if (users[i].userEmail === invite) {              
+                    members.push(users[i])
+                    break;
+                }
+            }
+        }
+        return res.status(200).send("초대 완료")
+
+    } else {
+        return res.status(400).send("이미 가입된 회원이 있습니다. \n" + `${duplication}`)
+    }
+     
+});
+
+
+//그룹 멤버 추방
+router.delete('/:groupId/members/:memberId', (req, res)=> {
+    const groupId = Number(req.params.groupId);
+    const memberId = Number(req.params.memberId);
+ 
+    let members = groups.filter((el) => {
+        return el.groupId === Number(groupId);
+    })[0].members
+
+    
+    for(let i = 0; i < members.length; i++) {
+        let member = members[i]
+        if(member.userId === memberId) {
+            members.splice(i, 1)
+        }
+    }
+
+
+    return res.status(200).send("그룹 멤버 추방.")
+     
+});
+
 
 module.exports = router;

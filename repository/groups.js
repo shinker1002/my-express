@@ -1,14 +1,3 @@
-let groupId = 3
-
-const increase = ()=> {
-    groupId = groupId + 1
-}
-const decrease = ()=> {
-    groupId--
-}
-
-
-
 const groups = [
    {
     groupId: 1,
@@ -19,11 +8,6 @@ const groups = [
             userId: 123,
             userEmail: "shinker98@naver.com",
             name: "최민수"
-        },
-        {
-            userId: 124,
-            userEmail: "shinker1998@naver.com",
-            name: "김민수"
         }
 	],
     channels: [
@@ -83,8 +67,5 @@ const groups = [
 ]
 
 module.exports = {
-    groupId,
-    groups,
-    increase,
-    decrease
+    groups
 }

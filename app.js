@@ -13,15 +13,13 @@ app.use(morgan(':method :url :status :res[content-length] - :response-time ms'))
 
 const port = 8080
 
-const groups = [];
-const members = [];
 
 const groupsRouter = require('./router/groups');
-const membersRouter = require('./router/members');
+// const membersRouter = require('./router/members');
 
 app.use('/groups', groupsRouter);
 
-app.use('/groups/:id/members', membersRouter);
+// app.use('/groups/:groupId/members', membersRouter);
 
 // app.get('/', (req, res) => {
 //     res.send('Hello World!')
